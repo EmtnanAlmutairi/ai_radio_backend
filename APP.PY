@@ -1,50 +1,55 @@
-from flask import Flask, jsonify, request
 import requests
-import os
-from flask_cors import CORS
-from dotenv import load_dotenv
 import json
 
-# Load environment variables from .env file
-load_dotenv()
+# Load JSON data from the file
+with open('episodes.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Loop through each episode and create audio files
+for episode in data["episodes"]:
+    title = episode["title"]
+    content = episode["content"]
 
-# API URL and key from environment variables
-FISH_AUDIO_API_URL = os.getenv('FISH_AUDIO_API_URL')
-FISH_AUDIO_API_KEY = os.getenv('FISH_AUDIO_API_KEY')
+    print(f"Processing: {title}")
 
-@app.route('/convert-episodes-to-audio', methods=['POST'])
-def convert_episodes_to_audio():
-    """Convert episodes from JSON to audio using Fish Audio API."""
+    # Prepare the payload for the API request
+    payload = {
+        "text": content,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "similarity_boost": 0.75,
+            "stability": 0.5
+        }
+    }
+
+    headers = {
+        "xi-api-key": "sk_c4d409c8195d84ef9782d05d5204eccfaf134c577803f964",  # Keep this secure
+        "Content-Type": "application/json"
+    }
+
+    # Make the POST request
     try:
-        # قراءة بيانات الحلقات من ملف JSON
-        with open('episodes.json', 'r', encoding='utf-8') as file:
-            data = json.load(file)
+        response = requests.post("https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB", json=payload, headers=headers)
+        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
 
-        audio_urls = []  # قائمة لحفظ روابط الصوت الناتجة
+        # Check and print the response content type
+        print("Response Content-Type:", response.headers.get("Content-Type"))
 
-        # إرسال كل حلقة إلى Fish Audio API
-        for episode in data['episodes']:
-            episode_content = episode['content']
-            response = requests.post(
-                FISH_AUDIO_API_URL,
-                json={'text': episode_content},
-                headers={'Authorization': f'Bearer {FISH_AUDIO_API_KEY}'}
-            )
-            response.raise_for_status()  # تحقق من نجاح الطلب
-            audio_url = response.json().get('audio_url')
-            audio_urls.append({'title': episode['title'], 'audio_url': audio_url})
+        # If the response is expected to be audio, handle it accordingly
+        if response.headers.get("Content-Type") == "audio/mpeg":
+            # Save the audio file with the episode title
+            audio_file_name = f"{title}.mp3"
+            with open(audio_file_name, "wb") as audio_file:
+                audio_file.write(response.content)
+            print(f"Audio file created: {audio_file_name}")
+        else:
+            # Print the response text for debugging
+            print("Response text:", response.text)
 
-        return jsonify(audio_urls), 200
-
-    except requests.exceptions.RequestException as e:
-        return jsonify({'error': str(e)}), 500
-    except FileNotFoundError:
-        return jsonify({'error': 'episodes.json file not found'}), 404
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Error parsing JSON'}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")  # HTTP error
+        print("Response content:", response.text)  # Show raw response content
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request error occurred: {req_err}")  # General request error
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")  # Any other exceptions
