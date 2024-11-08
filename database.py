@@ -1,12 +1,16 @@
-import sqlite3
+import os
+import psycopg2
 from flask import g
+from dotenv import load_dotenv
 
-DATABASE = 'audio_data.db'
+# Load environment variables
+load_dotenv()
+
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
+        g.db = psycopg2.connect(DATABASE_URL)
     return g.db
 
 def close_db(e=None):
@@ -17,9 +21,18 @@ def close_db(e=None):
 def init_db():
     db = get_db()
     with open('schema.sql') as f:
-        db.executescript(f.read())
+        db.cursor().execute(f.read())
+        db.commit()
 
-def save_audio_url(audio_url):
+def save_audio_data(generated_text, audio_url):
     db = get_db()
-    db.execute('INSERT INTO audio (url) VALUES (?)', (audio_url,))
+    cur = db.cursor()
+    cur.execute('INSERT INTO audio (generated_text, audio_url) VALUES (%s, %s)', (generated_text, audio_url))
     db.commit()
+
+def fetch_prompts():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute('SELECT prompt FROM prompts')  # جدول "prompts" في قاعدة البيانات
+    rows = cur.fetchall()
+    return [row[0] for row in rows]  # ارجع قائمة بالنصوص

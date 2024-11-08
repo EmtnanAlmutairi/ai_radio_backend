@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS audio;
 
 CREATE TABLE audio (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT NOT NULL
+    id SERIAL PRIMARY KEY,
+    generated_text TEXT NOT NULL,
+    audio_url TEXT NOT NULL
 );
