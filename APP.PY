@@ -11,8 +11,9 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# API URL from environment variables
+# API URL and key from environment variables
 FISH_AUDIO_API_URL = os.getenv('FISH_AUDIO_API_URL')
+FISH_AUDIO_API_KEY = os.getenv('FISH_AUDIO_API_KEY')
 
 @app.route('/convert-episodes-to-audio', methods=['POST'])
 def convert_episodes_to_audio():
@@ -30,7 +31,7 @@ def convert_episodes_to_audio():
             response = requests.post(
                 FISH_AUDIO_API_URL,
                 json={'text': episode_content},
-                headers={'Authorization': f'Bearer {os.getenv("FISH_AUDIO_API_KEY")}'}
+                headers={'Authorization': f'Bearer {FISH_AUDIO_API_KEY}'}
             )
             response.raise_for_status()  # تحقق من نجاح الطلب
             audio_url = response.json().get('audio_url')
