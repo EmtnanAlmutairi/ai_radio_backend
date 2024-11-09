@@ -48,7 +48,7 @@ class IBMWatsonXAIWrapper:
                 data = await response.json()
                 return data.get('results', [{}])[0].get('generated_text', "No text generated")
     async def send_to_api(self, title, content, file_url):
-        api_url = "https://radioallam.devadnan.net/assets/py/insert.php"
+        api_url = "https://radioallam.devadnan.net/insert.php"
         payload = {
             "title": title,
             "content": content,
@@ -77,7 +77,7 @@ class ElevenLabsWrapper:
             "stability": 0.5
         }
     async def upload_audio(self, audio_file_name):
-        upload_url = "https://radioallam.devadnan.net/assets/py/uploads.php"
+        upload_url = "https://radioallam.devadnan.net/uploads.php"
         async with aiohttp.ClientSession() as session:
             with open(audio_file_name, 'rb') as file:
                 data = aiohttp.FormData()
